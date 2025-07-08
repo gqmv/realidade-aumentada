@@ -227,15 +227,44 @@ export default function ARExperience() {
   };
 
   const placeSphere = () => {
-    if (reticleRef.current && sphereRef.current && reticleRef.current.visible) {
-      console.log("Placing sphere at", reticleRef.current.position);
-      sphereRef.current.position.copy(reticleRef.current.position);
-      sphereRef.current.quaternion.copy(reticleRef.current.quaternion);
-      sphereRef.current.visible = true;
-      setSpherePlaced(true);
-      setStatusMessage("Sphere placed");
+    // Debug initial state
+    console.log("placeSphere called", {
+      reticleExists: !!reticleRef.current,
+      sphereExists: !!sphereRef.current,
+      reticleVisible: reticleRef.current?.visible,
+    });
+    setStatusMessage("placeSphere called");
+    if (!reticleRef.current) {
+      setStatusMessage("No reticle available");
+      return;
     }
-  }
+    if (!sphereRef.current) {
+      setStatusMessage("No sphere mesh available");
+      return;
+    }
+    if (!reticleRef.current.visible) {
+      setStatusMessage("Reticle not visible - cannot place sphere");
+      return;
+    }
+    // Place sphere at reticle position
+    const pos = reticleRef.current.position;
+    console.log("Placing sphere at", pos);
+    setStatusMessage(
+      `Placing sphere at (${pos.x.toFixed(2)}, ${pos.y.toFixed(
+        2
+      )}, ${pos.z.toFixed(2)})`
+    );
+    sphereRef.current.position.copy(pos);
+    sphereRef.current.quaternion.copy(reticleRef.current.quaternion);
+    sphereRef.current.visible = true;
+    setSpherePlaced(true);
+    setStatusMessage(
+      `Sphere placed at (${pos.x.toFixed(2)}, ${pos.y.toFixed(
+        2
+      )}, ${pos.z.toFixed(2)})`
+    );
+    console.log("Sphere mesh after placement:", sphereRef.current);
+  };
 
   const endSession = () => {
     if (session) {
