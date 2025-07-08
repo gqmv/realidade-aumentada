@@ -119,7 +119,7 @@ export default function ARExperience() {
     reticleRef.current = reticle;
 
     // Create sphere (will be placed on tap)
-    const sphereGeometry = new THREE.SphereGeometry(10, 32, 32);
+    const sphereGeometry = new THREE.SphereGeometry(15, 32, 32);
     const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
     const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
     sphere.visible = false;
@@ -177,8 +177,7 @@ export default function ARExperience() {
       const onXRFrame = (time: number, frame: XRFrame) => {
         // If sphere has been placed, skip status updates and continue rendering
         if (spherePlacedRef.current) {
-          // Use the original cameraRef for XR getCamera
-          const xrCamera = (renderer.xr as any).getCamera(cameraRef.current);
+          const xrCamera = renderer.xr.getCamera();
           renderer.render(sceneRef.current!, xrCamera);
           xrSession.requestAnimationFrame(onXRFrame);
           return;
@@ -215,7 +214,7 @@ export default function ARExperience() {
           }
         }
         // Render with XR-aware camera
-        const xrCamera = (renderer.xr as any).getCamera(cameraRef.current);
+        const xrCamera = renderer.xr.getCamera();
         renderer.render(sceneRef.current!, xrCamera);
         // Queue next frame
         xrSession.requestAnimationFrame(onXRFrame);
