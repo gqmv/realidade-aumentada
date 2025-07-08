@@ -279,9 +279,20 @@ export default function ARExperience() {
         ref={canvasRef}
         className={`w-full h-full ${!session ? "hidden" : ""}`}
       />
-      <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-yellow-200 bg-opacity-75 p-2 rounded z-50 text-black">
-        {statusMessage}
-      </div>
+      {/* Status overlay: green for any 'surface' messages, yellow otherwise */}
+      {(() => {
+        const isSurfaceMsg = statusMessage.toLowerCase().includes("surface");
+        const bgClass = isSurfaceMsg
+          ? "bg-green-200 border border-green-500"
+          : "bg-yellow-200 bg-opacity-75";
+        return (
+          <div
+            className={`absolute top-2 left-1/2 transform -translate-x-1/2 p-2 rounded z-50 text-black ${bgClass}`}
+          >
+            {statusMessage}
+          </div>
+        );
+      })()}
       {!session ? (
         <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
           <h1 className="text-2xl font-bold mb-4">AR Sphere Demo</h1>
