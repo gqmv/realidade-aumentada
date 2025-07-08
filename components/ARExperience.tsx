@@ -257,14 +257,30 @@ export default function ARExperience() {
               if (pose) {
                 reticleRef.current.visible = true;
                 reticleRef.current.userData.hideCounter = 0;
-                reticleRef.current.matrix.fromArray(pose.transform.matrix);
-                reticleRef.current.matrix.decompose(
-                  reticleRef.current.position,
-                  reticleRef.current.quaternion,
-                  reticleRef.current.scale
-                );
+
+                // Apply the transformation matrix
+                const matrix = new THREE.Matrix4();
+                matrix.fromArray(pose.transform.matrix);
+
+                // Extract position, rotation, and scale
+                const position = new THREE.Vector3();
+                const quaternion = new THREE.Quaternion();
+                const scale = new THREE.Vector3();
+                matrix.decompose(position, quaternion, scale);
+
+                // Apply to reticle
+                reticleRef.current.position.copy(position);
+                reticleRef.current.quaternion.copy(quaternion);
+                reticleRef.current.scale.copy(scale);
+
+                // Force update
+                reticleRef.current.updateMatrix();
+                reticleRef.current.updateMatrixWorld(true);
 
                 const pos = reticleRef.current.position;
+                console.log("Pose transform matrix:", pose.transform.matrix);
+                console.log("Extracted position:", position);
+
                 setSurfaceStatus(
                   `Surface at (${pos.x.toFixed(2)}, ${pos.y.toFixed(
                     2
