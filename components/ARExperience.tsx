@@ -116,12 +116,8 @@ export default function ARExperience() {
     reticleRef.current = reticle;
 
     // Create sphere (will be placed on tap)
-    const sphereGeometry = new THREE.SphereGeometry(0.1, 32, 32);
-    const sphereMaterial = new THREE.MeshPhongMaterial({
-      color: 0x00ff00,
-      emissive: 0x00ff00,
-      emissiveIntensity: 0.2,
-    });
+    const sphereGeometry = new THREE.SphereGeometry(0.15, 32, 32);
+    const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
     const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
     sphere.visible = false;
     scene.add(sphere);
@@ -232,6 +228,7 @@ export default function ARExperience() {
 
   const placeSphere = () => {
     if (reticleRef.current && sphereRef.current && reticleRef.current.visible) {
+      console.log("Placing sphere at", reticleRef.current.position);
       sphereRef.current.position.copy(reticleRef.current.position);
       sphereRef.current.quaternion.copy(reticleRef.current.quaternion);
       sphereRef.current.visible = true;
