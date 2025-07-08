@@ -187,11 +187,6 @@ export default function ARExperience() {
       });
       setStatusMessage("AR session started");
       setSession(xrSession);
-      // Attach XR session to Three.js renderer so camera feed is displayed
-      renderer.xr.setSession(xrSession);
-
-      // Set up the WebXR camera
-      renderer.xr.updateCamera(camera);
 
       // Acquire reference space for placing objects, fallback to local if local-floor unsupported
       let refSpace: XRReferenceSpace;
@@ -222,12 +217,22 @@ export default function ARExperience() {
         throw new Error("Hit test not supported");
       }
 
-      // Set up XR render loop with Three.js
+      // Set up render loop BEFORE attaching session
+      let frameCount = 0;
       renderer.setAnimationLoop((timestamp, frame) => {
+        frameCount++;
         if (!frame) {
-          setStatusMessage("No XRFrame");
+          setStatusMessage(`No XRFrame (count: ${frameCount})`);
+          console.log(
+            "No frame at count:",
+            frameCount,
+            "XR active:",
+            renderer.xr.isPresenting
+          );
           return;
         }
+
+        setStatusMessage(`XRFrame OK (${frameCount})`);
 
         // Skip status updates if sphere is placed
         if (!spherePlacedRef.current) {
@@ -239,7 +244,6 @@ export default function ARExperience() {
             const hitTestResults = frame.getHitTestResults(
               hitTestSourceRef.current
             );
-            setStatusMessage(`Hit test results: ${hitTestResults.length}`);
 
             if (hitTestResults.length > 0 && reticleRef.current) {
               const hit = hitTestResults[0];
@@ -292,6 +296,13 @@ export default function ARExperience() {
         // Render the scene
         renderer.render(scene, camera);
       });
+
+      // NOW attach XR session to renderer
+      await renderer.xr.setSession(xrSession);
+      console.log(
+        "XR session attached, isPresenting:",
+        renderer.xr.isPresenting
+      );
 
       xrSession.addEventListener("end", () => {
         setSession(null);
