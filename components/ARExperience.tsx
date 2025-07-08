@@ -176,32 +176,47 @@ export default function ARExperience() {
 
       // Set up render loop
       renderer.setAnimationLoop((timestamp, frame) => {
-        if (frame && hitTestSourceRef.current && referenceSpaceRef.current) {
-          const hitTestResults = frame.getHitTestResults(
-            hitTestSourceRef.current
-          );
-
-          if (hitTestResults.length > 0 && reticleRef.current) {
-            setStatusMessage("Surface detected");
-            const hit = hitTestResults[0];
-            const pose = hit.getPose(referenceSpaceRef.current);
-
-            if (pose) {
-              reticleRef.current.visible = true;
-              reticleRef.current.matrix.fromArray(pose.transform.matrix);
-              reticleRef.current.matrix.decompose(
-                reticleRef.current.position,
-                reticleRef.current.quaternion,
-                reticleRef.current.scale
-              );
-            }
-          } else if (reticleRef.current) {
-            setStatusMessage("Searching for surface");
-            reticleRef.current.visible = false;
-          }
+        // Debug: ensure render loop is running and dependencies are present
+        if (!frame) {
+          setStatusMessage("No XRFrame in render loop");
+          renderer.render(sceneRef.current!, cameraRef.current!);
+          return;
         }
+        if (!hitTestSourceRef.current) {
+          setStatusMessage("Hit test source missing in render loop");
+          renderer.render(sceneRef.current!, cameraRef.current!);
+          return;
+        }
+        if (!referenceSpaceRef.current) {
+          setStatusMessage("Reference space missing in render loop");
+          renderer.render(sceneRef.current!, cameraRef.current!);
+          return;
+        }
+        // Frame and dependencies available
+        setStatusMessage("XRFrame received");
+        const hitTestResults = frame.getHitTestResults(
+          hitTestSourceRef.current
+        );
+        setStatusMessage(`Hit test results: ${hitTestResults.length}`);
+        if (hitTestResults.length > 0 && reticleRef.current) {
+          setStatusMessage("Surface detected");
+          const hit = hitTestResults[0];
+          const pose = hit.getPose(referenceSpaceRef.current!);
 
-        renderer.render(scene, camera);
+          if (pose) {
+            reticleRef.current.visible = true;
+            reticleRef.current.matrix.fromArray(pose.transform.matrix);
+            reticleRef.current.matrix.decompose(
+              reticleRef.current.position,
+              reticleRef.current.quaternion,
+              reticleRef.current.scale
+            );
+          }
+        } else if (reticleRef.current) {
+          setStatusMessage("Searching for surface");
+          reticleRef.current.visible = false;
+        }
+        renderer.render(sceneRef.current!, cameraRef.current!);
       });
 
       xrSession.addEventListener("end", () => {
