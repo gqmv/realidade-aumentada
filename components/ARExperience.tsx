@@ -119,7 +119,7 @@ export default function ARExperience() {
     reticleRef.current = reticle;
 
     // Create sphere (will be placed on tap)
-    const sphereGeometry = new THREE.SphereGeometry(0.15, 32, 32);
+    const sphereGeometry = new THREE.SphereGeometry(10, 32, 32);
     const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
     const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
     sphere.visible = false;
