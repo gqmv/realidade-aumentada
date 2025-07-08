@@ -219,7 +219,7 @@ export default function ARExperience() {
 
       // Set up render loop BEFORE attaching session
       let frameCount = 0;
-      renderer.setAnimationLoop((timestamp, frame) => {
+      const onXRFrame = (timestamp: number, frame: XRFrame) => {
         frameCount++;
         if (!frame) {
           setStatusMessage(`No XRFrame (count: ${frameCount})`);
@@ -295,7 +295,7 @@ export default function ARExperience() {
 
         // Render the scene
         renderer.render(scene, camera);
-      });
+      };
 
       // NOW attach XR session to renderer
       await renderer.xr.setSession(xrSession);
@@ -303,6 +303,10 @@ export default function ARExperience() {
         "XR session attached, isPresenting:",
         renderer.xr.isPresenting
       );
+
+      // Start the animation loop after session is attached
+      renderer.setAnimationLoop(onXRFrame);
+      console.log("Animation loop started");
 
       xrSession.addEventListener("end", () => {
         setSession(null);
