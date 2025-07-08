@@ -15,6 +15,7 @@ export default function ARExperience() {
   const reticleRef = useRef<THREE.Mesh | null>(null)
   const sphereRef = useRef<THREE.Mesh | null>(null)
   const hitTestSourceRef = useRef<XRHitTestSource | null>(null)
+  const referenceSpaceRef = useRef<XRReferenceSpace | null>(null);
   const [spherePlaced, setSpherePlaced] = useState(false)
   const [error, setError] = useState<string>("");
 
@@ -142,29 +143,31 @@ export default function ARExperience() {
       // Attach XR session to Three.js renderer so camera feed is displayed
       renderer.xr.setSession(xrSession);
 
+      // Set up reference space for placing objects
+      const localSpace = await xrSession.requestReferenceSpace("local-floor");
+      referenceSpaceRef.current = localSpace;
+
       // Set up hit test source
       const viewerSpace = await xrSession.requestReferenceSpace("viewer");
       if (xrSession.requestHitTestSource) {
         const hitTestSource = await xrSession.requestHitTestSource({
           space: viewerSpace,
         });
-        if (hitTestSource) {
-          hitTestSourceRef.current = hitTestSource;
-        }
+        if (hitTestSource) hitTestSourceRef.current = hitTestSource;
       } else {
         throw new Error("Hit test not supported");
       }
 
       // Set up render loop
       renderer.setAnimationLoop((timestamp, frame) => {
-        if (frame && hitTestSourceRef.current) {
+        if (frame && hitTestSourceRef.current && referenceSpaceRef.current) {
           const hitTestResults = frame.getHitTestResults(
             hitTestSourceRef.current
           );
 
           if (hitTestResults.length > 0 && reticleRef.current) {
             const hit = hitTestResults[0];
-            const pose = hit.getPose(frame.getReferenceSpace());
+            const pose = hit.getPose(referenceSpaceRef.current);
 
             if (pose) {
               reticleRef.current.visible = true;
