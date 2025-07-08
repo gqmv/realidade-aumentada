@@ -177,7 +177,8 @@ export default function ARExperience() {
       const onXRFrame = (time: number, frame: XRFrame) => {
         // If sphere has been placed, skip status updates and continue rendering
         if (spherePlacedRef.current) {
-          const xrCamera = renderer.xr.getCamera();
+          // Use the original cameraRef for XR getCamera
+          const xrCamera = (renderer.xr as any).getCamera(cameraRef.current);
           renderer.render(sceneRef.current!, xrCamera);
           xrSession.requestAnimationFrame(onXRFrame);
           return;
@@ -214,7 +215,7 @@ export default function ARExperience() {
           }
         }
         // Render with XR-aware camera
-        const xrCamera = renderer.xr.getCamera();
+        const xrCamera = (renderer.xr as any).getCamera(cameraRef.current);
         renderer.render(sceneRef.current!, xrCamera);
         // Queue next frame
         xrSession.requestAnimationFrame(onXRFrame);
