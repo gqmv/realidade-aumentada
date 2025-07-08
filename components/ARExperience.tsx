@@ -21,6 +21,7 @@ export default function ARExperience() {
   const [statusMessage, setStatusMessage] = useState<string>("Idle");
   const [surfaceStatus, setSurfaceStatus] = useState<string>("");
   const spherePlacedRef = useRef<boolean>(false);
+  const debugLoggedRef = useRef<boolean>(false);
 
   useEffect(() => {
     // Check if WebXR is supported
@@ -108,12 +109,16 @@ export default function ARExperience() {
     light.position.set(0.5, 1, 0.25);
     scene.add(light);
 
+    // Add ambient light for better visibility
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+
     // Create reticle (placement indicator)
-    const reticleGeometry = new THREE.RingGeometry(0.1, 0.15, 32).rotateX(
+    const reticleGeometry = new THREE.RingGeometry(0.2, 0.3, 32).rotateX(
       -Math.PI / 2
     );
     const reticleMaterial = new THREE.MeshBasicMaterial({
-      color: 0x00ff00,
+      color: 0xffff00, // Bright yellow for better visibility
       side: THREE.DoubleSide,
       depthTest: false,
       depthWrite: false,
@@ -125,11 +130,11 @@ export default function ARExperience() {
     reticleRef.current = reticle;
 
     // Add a center dot to the reticle for better visibility
-    const dotGeometry = new THREE.CircleGeometry(0.02, 32).rotateX(
+    const dotGeometry = new THREE.CircleGeometry(0.05, 32).rotateX(
       -Math.PI / 2
     );
     const dotMaterial = new THREE.MeshBasicMaterial({
-      color: 0x00ff00,
+      color: 0xffff00,
       side: THREE.DoubleSide,
       depthTest: false,
       depthWrite: false,
@@ -140,19 +145,32 @@ export default function ARExperience() {
     // Add a vertical line to make the reticle more visible
     const lineGeometry = new THREE.BufferGeometry().setFromPoints([
       new THREE.Vector3(0, 0, 0),
-      new THREE.Vector3(0, 0.1, 0),
+      new THREE.Vector3(0, 0.3, 0),
     ]);
-    const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00ff00 });
+    const lineMaterial = new THREE.LineBasicMaterial({
+      color: 0xffff00,
+      linewidth: 3,
+    });
     const line = new THREE.Line(lineGeometry, lineMaterial);
     reticle.add(line);
 
     // Create sphere (will be placed on tap)
-    const sphereGeometry = new THREE.SphereGeometry(0.15, 32, 32);
-    const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const sphereGeometry = new THREE.SphereGeometry(0.3, 32, 32);
+    const sphereMaterial = new THREE.MeshBasicMaterial({
+      color: 0xff0000,
+      wireframe: true, // Make it wireframe to ensure visibility
+    });
     const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
     sphere.visible = false;
     scene.add(sphere);
     sphereRef.current = sphere;
+
+    // Debug: log scene children
+    console.log("Scene children count:", scene.children.length);
+    console.log(
+      "Scene children:",
+      scene.children.map((child) => child.type)
+    );
 
     // Start AR session
     try {
@@ -171,6 +189,9 @@ export default function ARExperience() {
       setSession(xrSession);
       // Attach XR session to Three.js renderer so camera feed is displayed
       renderer.xr.setSession(xrSession);
+
+      // Set up the WebXR camera
+      renderer.xr.updateCamera(camera);
 
       // Acquire reference space for placing objects, fallback to local if local-floor unsupported
       let refSpace: XRReferenceSpace;
@@ -201,64 +222,76 @@ export default function ARExperience() {
         throw new Error("Hit test not supported");
       }
 
-      // Set up XR frame loop using xrSession.requestAnimationFrame
-      const onXRFrame = (time: number, frame: XRFrame) => {
+      // Set up XR render loop with Three.js
+      renderer.setAnimationLoop((timestamp, frame) => {
         if (!frame) {
-          setStatusMessage("No XRFrame in session callback");
-        } else if (!hitTestSourceRef.current) {
-          setStatusMessage("Hit test source missing");
-        } else if (!referenceSpaceRef.current) {
-          setStatusMessage("Reference space missing");
-        } else {
-          setStatusMessage("XRFrame received");
-          const hitTestResults = frame.getHitTestResults(
-            hitTestSourceRef.current
-          );
-          setStatusMessage(`Hit test results: ${hitTestResults.length}`);
-          if (hitTestResults.length > 0 && reticleRef.current) {
-            setSurfaceStatus("Surface detected");
-            const hit = hitTestResults[0];
-            const pose = hit.getPose(referenceSpaceRef.current!);
-            if (pose) {
-              reticleRef.current.visible = true;
-              reticleRef.current.matrix.fromArray(pose.transform.matrix);
-              reticleRef.current.matrix.decompose(
-                reticleRef.current.position,
-                reticleRef.current.quaternion,
-                reticleRef.current.scale
-              );
-              // Log reticle position once when it becomes visible
-              if (!reticleRef.current.userData.logged) {
-                console.log("Reticle visible at:", reticleRef.current.position);
-                reticleRef.current.userData.logged = true;
-              }
-              const pos = reticleRef.current.position;
-              setSurfaceStatus(
-                `Surface at (${pos.x.toFixed(2)}, ${pos.y.toFixed(
-                  2
-                )}, ${pos.z.toFixed(2)})`
-              );
-            }
-          } else if (reticleRef.current) {
-            setSurfaceStatus("Searching for surface");
-            reticleRef.current.visible = false;
-          }
-        }
-        // If sphere placed, stop updating statuses
-        if (spherePlacedRef.current) {
-          const xrCamera = renderer.xr.getCamera();
-          renderer.render(sceneRef.current!, xrCamera);
-          xrSession.requestAnimationFrame(onXRFrame);
+          setStatusMessage("No XRFrame");
           return;
         }
-        // Render with XR-aware camera
-        const xrCamera = renderer.xr.getCamera();
-        renderer.render(sceneRef.current!, xrCamera);
-        // Queue next frame
-        xrSession.requestAnimationFrame(onXRFrame);
-      };
-      // Start the XR loop
-      xrSession.requestAnimationFrame(onXRFrame);
+
+        // Skip status updates if sphere is placed
+        if (!spherePlacedRef.current) {
+          if (!hitTestSourceRef.current) {
+            setStatusMessage("Hit test source missing");
+          } else if (!referenceSpaceRef.current) {
+            setStatusMessage("Reference space missing");
+          } else {
+            const hitTestResults = frame.getHitTestResults(
+              hitTestSourceRef.current
+            );
+            setStatusMessage(`Hit test results: ${hitTestResults.length}`);
+
+            if (hitTestResults.length > 0 && reticleRef.current) {
+              const hit = hitTestResults[0];
+              const pose = hit.getPose(referenceSpaceRef.current!);
+
+              if (pose) {
+                reticleRef.current.visible = true;
+                reticleRef.current.matrix.fromArray(pose.transform.matrix);
+                reticleRef.current.matrix.decompose(
+                  reticleRef.current.position,
+                  reticleRef.current.quaternion,
+                  reticleRef.current.scale
+                );
+
+                const pos = reticleRef.current.position;
+                setSurfaceStatus(
+                  `Surface at (${pos.x.toFixed(2)}, ${pos.y.toFixed(
+                    2
+                  )}, ${pos.z.toFixed(2)})`
+                );
+
+                // Log once
+                if (!reticleRef.current.userData.logged) {
+                  console.log("Reticle visible at:", pos);
+                  console.log("Reticle scale:", reticleRef.current.scale);
+                  reticleRef.current.userData.logged = true;
+                }
+              }
+            } else if (reticleRef.current) {
+              setSurfaceStatus("Searching for surface");
+              reticleRef.current.visible = false;
+            }
+          }
+        }
+
+        // Debug: Check what's visible in the scene
+        const visibleObjects = scene.children.filter((child) => child.visible);
+        if (visibleObjects.length > 0 && !debugLoggedRef.current) {
+          console.log(
+            "Visible objects in scene:",
+            visibleObjects.map((obj) => ({
+              type: obj.type,
+              visible: obj.visible,
+              position: obj.position,
+            }))
+          );
+          debugLoggedRef.current = true;
+        }
+
+        // Render the scene
+        renderer.render(scene, camera);
+      });
 
       xrSession.addEventListener("end", () => {
         setSession(null);
