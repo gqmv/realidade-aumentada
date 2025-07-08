@@ -19,6 +19,7 @@ export default function ARExperience() {
   const [spherePlaced, setSpherePlaced] = useState(false)
   const [error, setError] = useState<string>("");
   const [statusMessage, setStatusMessage] = useState<string>("Idle");
+  const [surfaceStatus, setSurfaceStatus] = useState<string>("");
 
   useEffect(() => {
     // Check if WebXR is supported
@@ -62,6 +63,7 @@ export default function ARExperience() {
 
   const initializeAR = async () => {
     setStatusMessage("Initializing AR...");
+    setSurfaceStatus("");
     console.log("Canvas ref:", canvasRef.current);
     console.log("Is supported:", isSupported);
 
@@ -185,7 +187,7 @@ export default function ARExperience() {
           );
           setStatusMessage(`Hit test results: ${hitTestResults.length}`);
           if (hitTestResults.length > 0 && reticleRef.current) {
-            setStatusMessage("Surface detected");
+            setSurfaceStatus("Surface detected");
             const hit = hitTestResults[0];
             const pose = hit.getPose(referenceSpaceRef.current!);
             if (pose) {
@@ -198,7 +200,7 @@ export default function ARExperience() {
               );
             }
           } else if (reticleRef.current) {
-            setStatusMessage("Searching for surface");
+            setSurfaceStatus("Searching for surface");
             reticleRef.current.visible = false;
           }
         }
@@ -271,7 +273,7 @@ export default function ARExperience() {
       session.end();
       setStatusMessage("Session ended");
     }
-  }
+  };
 
   return (
     <div className="relative w-full h-screen">
@@ -279,20 +281,16 @@ export default function ARExperience() {
         ref={canvasRef}
         className={`w-full h-full ${!session ? "hidden" : ""}`}
       />
-      {/* Status overlay: green for any 'surface' messages, yellow otherwise */}
-      {(() => {
-        const isSurfaceMsg = statusMessage.toLowerCase().includes("surface");
-        const bgClass = isSurfaceMsg
-          ? "bg-green-200 border border-green-500"
-          : "bg-yellow-200 bg-opacity-75";
-        return (
-          <div
-            className={`absolute top-2 left-1/2 transform -translate-x-1/2 p-2 rounded z-50 text-black ${bgClass}`}
-          >
-            {statusMessage}
-          </div>
-        );
-      })()}
+      {/* General status overlay */}
+      <div className="absolute top-2 left-1/2 transform -translate-x-1/2 p-2 bg-yellow-200 bg-opacity-75 rounded z-50 text-black">
+        {statusMessage}
+      </div>
+      {/* Surface status overlay */}
+      {surfaceStatus && (
+        <div className="absolute top-12 left-1/2 transform -translate-x-1/2 p-2 bg-green-200 border border-green-500 rounded z-50 text-black">
+          {surfaceStatus}
+        </div>
+      )}
       {!session ? (
         <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
           <h1 className="text-2xl font-bold mb-4">AR Sphere Demo</h1>
