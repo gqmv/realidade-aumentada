@@ -134,6 +134,8 @@ export default function ARExperience() {
       console.log("Requesting AR session...");
       const xrSession = await navigator.xr.requestSession("immersive-ar", {
         requiredFeatures: ["hit-test"],
+        optionalFeatures: ["dom-overlay"],
+        domOverlay: { root: document.body },
       });
       console.log("AR session created successfully");
       setSession(xrSession);
