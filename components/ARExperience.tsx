@@ -20,6 +20,7 @@ export default function ARExperience() {
   const [error, setError] = useState<string>("");
   const [statusMessage, setStatusMessage] = useState<string>("Idle");
   const [surfaceStatus, setSurfaceStatus] = useState<string>("");
+  const spherePlacedRef = useRef<boolean>(false);
 
   useEffect(() => {
     // Check if WebXR is supported
@@ -204,6 +205,13 @@ export default function ARExperience() {
             reticleRef.current.visible = false;
           }
         }
+        // If sphere placed, stop updating statuses
+        if (spherePlacedRef.current) {
+          const xrCamera = renderer.xr.getCamera();
+          renderer.render(sceneRef.current!, xrCamera);
+          xrSession.requestAnimationFrame(onXRFrame);
+          return;
+        }
         // Render with XR-aware camera
         const xrCamera = renderer.xr.getCamera();
         renderer.render(sceneRef.current!, xrCamera);
@@ -260,6 +268,7 @@ export default function ARExperience() {
     sphereRef.current.quaternion.copy(reticleRef.current.quaternion);
     sphereRef.current.visible = true;
     setSpherePlaced(true);
+    spherePlacedRef.current = true;
     setStatusMessage(
       `Sphere placed at (${pos.x.toFixed(2)}, ${pos.y.toFixed(
         2
