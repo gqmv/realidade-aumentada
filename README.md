@@ -1,36 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# WebXR AR Sphere Demo
 
-## Getting Started
+A simple proof of concept for placing a 3D sphere in augmented reality using WebXR and Three.js.
 
-First, run the development server:
+## Requirements
 
+WebXR AR requires:
+- **Android**: Chrome 81+ with ARCore support
+- **iOS**: Safari 15+ with ARKit support  
+- **HTTPS connection** (localhost works for development)
+
+## Running the App
+
+1. Install dependencies:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Start the development server:
+```bash
+npm run dev
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Open on your AR-capable device:
+   - For local testing: `http://localhost:3001`
+   - For network testing: `http://[YOUR-IP]:3001`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## How to Use
 
-## Learn More
+1. Open the app on an AR-capable device
+2. Tap "Start AR Experience" 
+3. Point your camera at a flat surface (table, floor)
+4. A white ring will appear when a surface is detected
+5. Tap "Place Sphere" to place a green sphere at that location
 
-To learn more about Next.js, take a look at the following resources:
+## Troubleshooting
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **"WebXR AR is not supported"**: Your device/browser doesn't support AR. Try Chrome on Android or Safari on iOS.
+- **Nothing happens when clicking Start**: Check the browser console for errors. You may need to enable WebXR flags in your browser.
+- **No surfaces detected**: Ensure good lighting and point at a textured flat surface.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Browser Setup
 
-## Deploy on Vercel
+### Chrome on Android
+- Ensure ARCore is installed from Google Play
+- Chrome should work out of the box
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Safari on iOS  
+- Requires iOS 15+
+- Enable WebXR in Settings > Safari > Advanced > Feature Flags
