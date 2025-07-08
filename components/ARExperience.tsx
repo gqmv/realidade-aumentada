@@ -245,12 +245,18 @@ export default function ARExperience() {
               hitTestSourceRef.current
             );
 
+            // Always show hit test count for debugging
+            setStatusMessage(
+              `Hit tests: ${hitTestResults.length}, Reticle visible: ${reticleRef.current?.visible}`
+            );
+
             if (hitTestResults.length > 0 && reticleRef.current) {
               const hit = hitTestResults[0];
               const pose = hit.getPose(referenceSpaceRef.current!);
 
               if (pose) {
                 reticleRef.current.visible = true;
+                reticleRef.current.userData.hideCounter = 0;
                 reticleRef.current.matrix.fromArray(pose.transform.matrix);
                 reticleRef.current.matrix.decompose(
                   reticleRef.current.position,
@@ -269,12 +275,22 @@ export default function ARExperience() {
                 if (!reticleRef.current.userData.logged) {
                   console.log("Reticle visible at:", pos);
                   console.log("Reticle scale:", reticleRef.current.scale);
+                  console.log("Reticle matrix:", reticleRef.current.matrix);
                   reticleRef.current.userData.logged = true;
                 }
               }
             } else if (reticleRef.current) {
               setSurfaceStatus("Searching for surface");
-              reticleRef.current.visible = false;
+              // Don't hide reticle immediately - keep it visible for a few frames
+              if (!reticleRef.current.userData.hideCounter) {
+                reticleRef.current.userData.hideCounter = 0;
+              }
+              reticleRef.current.userData.hideCounter++;
+              if (reticleRef.current.userData.hideCounter > 30) {
+                // Hide after 30 frames (~0.5 sec)
+                reticleRef.current.visible = false;
+                reticleRef.current.userData.hideCounter = 0;
+              }
             }
           }
         }
@@ -329,6 +345,8 @@ export default function ARExperience() {
       reticleExists: !!reticleRef.current,
       sphereExists: !!sphereRef.current,
       reticleVisible: reticleRef.current?.visible,
+      reticlePosition: reticleRef.current?.position,
+      sphereVisible: sphereRef.current?.visible,
     });
     setStatusMessage("placeSphere called");
     if (!reticleRef.current) {
@@ -339,12 +357,15 @@ export default function ARExperience() {
       setStatusMessage("No sphere mesh available");
       return;
     }
-    if (!reticleRef.current.visible) {
-      setStatusMessage("Reticle not visible - cannot place sphere");
+
+    // Try to place sphere even if reticle is not visible, as long as it has a valid position
+    const pos = reticleRef.current.position;
+    if (pos.x === 0 && pos.y === 0 && pos.z === 0) {
+      setStatusMessage("Reticle has no valid position");
       return;
     }
+
     // Place sphere at reticle position
-    const pos = reticleRef.current.position;
     console.log("Placing sphere at", pos);
     setStatusMessage(
       `Placing sphere at (${pos.x.toFixed(2)}, ${pos.y.toFixed(
@@ -354,6 +375,10 @@ export default function ARExperience() {
     sphereRef.current.position.copy(pos);
     sphereRef.current.quaternion.copy(reticleRef.current.quaternion);
     sphereRef.current.visible = true;
+
+    // Force reticle to hide after placing sphere
+    reticleRef.current.visible = false;
+
     setSpherePlaced(true);
     spherePlacedRef.current = true;
     setStatusMessage(
@@ -362,6 +387,11 @@ export default function ARExperience() {
       )}, ${pos.z.toFixed(2)})`
     );
     console.log("Sphere mesh after placement:", sphereRef.current);
+    console.log("Sphere visible:", sphereRef.current.visible);
+    console.log(
+      "Sphere in scene:",
+      sceneRef.current?.children.includes(sphereRef.current)
+    );
   };
 
   const endSession = () => {
