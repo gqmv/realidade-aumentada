@@ -137,6 +137,8 @@ export default function ARExperience() {
       });
       console.log("AR session created successfully");
       setSession(xrSession);
+      // Attach XR session to Three.js renderer so camera feed is displayed
+      renderer.xr.setSession(xrSession);
 
       // Set up hit test source
       const viewerSpace = await xrSession.requestReferenceSpace("viewer");
