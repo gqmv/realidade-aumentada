@@ -209,26 +209,23 @@ export default function ARExperience() {
 
   return (
     <div className="relative w-full h-screen">
+      <canvas
+        ref={canvasRef}
+        className={`w-full h-full ${!session ? "hidden" : ""}`}
+      />
       {!session ? (
-        <div className="flex flex-col items-center justify-center h-full p-4">
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
           <h1 className="text-2xl font-bold mb-4">AR Sphere Demo</h1>
           <p className="text-gray-600 mb-6 text-center">
             Tap the button to start AR and place a sphere on a surface
           </p>
           {isSupported ? (
-            <>
-              <button
-                onClick={initializeAR}
-                className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-              >
-                Start AR Experience
-              </button>
-              {error && (
-                <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-                  <p className="text-sm">{error}</p>
-                </div>
-              )}
-            </>
+            <button
+              onClick={initializeAR}
+              className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              Start AR Experience
+            </button>
           ) : (
             <div className="text-center">
               <p className="text-red-500 mb-4">
@@ -258,25 +255,22 @@ export default function ARExperience() {
           )}
         </div>
       ) : (
-        <>
-          <canvas ref={canvasRef} className="w-full h-full" />
-          <div className="absolute bottom-0 left-0 right-0 p-4 flex flex-col items-center gap-4">
-            {!spherePlaced && (
-              <button
-                onClick={placeSphere}
-                className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-              >
-                Place Sphere
-              </button>
-            )}
+        <div className="absolute bottom-0 left-0 right-0 p-4 flex flex-col items-center gap-4">
+          {!spherePlaced && (
             <button
-              onClick={endSession}
-              className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+              onClick={placeSphere}
+              className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
             >
-              End AR Session
+              Place Sphere
             </button>
-          </div>
-        </>
+          )}
+          <button
+            onClick={endSession}
+            className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+          >
+            End AR Session
+          </button>
+        </div>
       )}
     </div>
   );
