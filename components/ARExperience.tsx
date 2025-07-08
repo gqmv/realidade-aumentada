@@ -109,17 +109,45 @@ export default function ARExperience() {
     scene.add(light);
 
     // Create reticle (placement indicator)
-    const reticleGeometry = new THREE.RingGeometry(0.15, 0.2, 32).rotateX(
+    const reticleGeometry = new THREE.RingGeometry(0.1, 0.15, 32).rotateX(
       -Math.PI / 2
     );
-    const reticleMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const reticleMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00ff00,
+      side: THREE.DoubleSide,
+      depthTest: false,
+      depthWrite: false,
+    });
     const reticle = new THREE.Mesh(reticleGeometry, reticleMaterial);
+    reticle.renderOrder = 1; // Render on top
     reticle.visible = false;
     scene.add(reticle);
     reticleRef.current = reticle;
 
+    // Add a center dot to the reticle for better visibility
+    const dotGeometry = new THREE.CircleGeometry(0.02, 32).rotateX(
+      -Math.PI / 2
+    );
+    const dotMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00ff00,
+      side: THREE.DoubleSide,
+      depthTest: false,
+      depthWrite: false,
+    });
+    const dot = new THREE.Mesh(dotGeometry, dotMaterial);
+    reticle.add(dot);
+
+    // Add a vertical line to make the reticle more visible
+    const lineGeometry = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(0, 0.1, 0),
+    ]);
+    const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00ff00 });
+    const line = new THREE.Line(lineGeometry, lineMaterial);
+    reticle.add(line);
+
     // Create sphere (will be placed on tap)
-    const sphereGeometry = new THREE.SphereGeometry(15, 32, 32);
+    const sphereGeometry = new THREE.SphereGeometry(0.15, 32, 32);
     const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
     const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
     sphere.visible = false;
@@ -175,14 +203,6 @@ export default function ARExperience() {
 
       // Set up XR frame loop using xrSession.requestAnimationFrame
       const onXRFrame = (time: number, frame: XRFrame) => {
-        // If sphere has been placed, skip status updates and continue rendering
-        if (spherePlacedRef.current) {
-          const xrCamera = renderer.xr.getCamera();
-          renderer.render(sceneRef.current!, xrCamera);
-          xrSession.requestAnimationFrame(onXRFrame);
-          return;
-        }
-        // Status updates for AR flow
         if (!frame) {
           setStatusMessage("No XRFrame in session callback");
         } else if (!hitTestSourceRef.current) {
@@ -207,11 +227,29 @@ export default function ARExperience() {
                 reticleRef.current.quaternion,
                 reticleRef.current.scale
               );
+              // Log reticle position once when it becomes visible
+              if (!reticleRef.current.userData.logged) {
+                console.log("Reticle visible at:", reticleRef.current.position);
+                reticleRef.current.userData.logged = true;
+              }
+              const pos = reticleRef.current.position;
+              setSurfaceStatus(
+                `Surface at (${pos.x.toFixed(2)}, ${pos.y.toFixed(
+                  2
+                )}, ${pos.z.toFixed(2)})`
+              );
             }
           } else if (reticleRef.current) {
             setSurfaceStatus("Searching for surface");
             reticleRef.current.visible = false;
           }
+        }
+        // If sphere placed, stop updating statuses
+        if (spherePlacedRef.current) {
+          const xrCamera = renderer.xr.getCamera();
+          renderer.render(sceneRef.current!, xrCamera);
+          xrSession.requestAnimationFrame(onXRFrame);
+          return;
         }
         // Render with XR-aware camera
         const xrCamera = renderer.xr.getCamera();
