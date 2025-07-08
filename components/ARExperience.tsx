@@ -174,50 +174,46 @@ export default function ARExperience() {
         throw new Error("Hit test not supported");
       }
 
-      // Set up render loop
-      renderer.setAnimationLoop((timestamp, frame) => {
-        // Debug: ensure render loop is running and dependencies are present
+      // Set up XR frame loop using xrSession.requestAnimationFrame
+      const onXRFrame = (time: number, frame: XRFrame) => {
         if (!frame) {
-          setStatusMessage("No XRFrame in render loop");
-          renderer.render(sceneRef.current!, cameraRef.current!);
-          return;
-        }
-        if (!hitTestSourceRef.current) {
-          setStatusMessage("Hit test source missing in render loop");
-          renderer.render(sceneRef.current!, cameraRef.current!);
-          return;
-        }
-        if (!referenceSpaceRef.current) {
-          setStatusMessage("Reference space missing in render loop");
-          renderer.render(sceneRef.current!, cameraRef.current!);
-          return;
-        }
-        // Frame and dependencies available
-        setStatusMessage("XRFrame received");
-        const hitTestResults = frame.getHitTestResults(
-          hitTestSourceRef.current
-        );
-        setStatusMessage(`Hit test results: ${hitTestResults.length}`);
-        if (hitTestResults.length > 0 && reticleRef.current) {
-          setStatusMessage("Surface detected");
-          const hit = hitTestResults[0];
-          const pose = hit.getPose(referenceSpaceRef.current!);
-
-          if (pose) {
-            reticleRef.current.visible = true;
-            reticleRef.current.matrix.fromArray(pose.transform.matrix);
-            reticleRef.current.matrix.decompose(
-              reticleRef.current.position,
-              reticleRef.current.quaternion,
-              reticleRef.current.scale
-            );
+          setStatusMessage("No XRFrame in session callback");
+        } else if (!hitTestSourceRef.current) {
+          setStatusMessage("Hit test source missing");
+        } else if (!referenceSpaceRef.current) {
+          setStatusMessage("Reference space missing");
+        } else {
+          setStatusMessage("XRFrame received");
+          const hitTestResults = frame.getHitTestResults(
+            hitTestSourceRef.current
+          );
+          setStatusMessage(`Hit test results: ${hitTestResults.length}`);
+          if (hitTestResults.length > 0 && reticleRef.current) {
+            setStatusMessage("Surface detected");
+            const hit = hitTestResults[0];
+            const pose = hit.getPose(referenceSpaceRef.current!);
+            if (pose) {
+              reticleRef.current.visible = true;
+              reticleRef.current.matrix.fromArray(pose.transform.matrix);
+              reticleRef.current.matrix.decompose(
+                reticleRef.current.position,
+                reticleRef.current.quaternion,
+                reticleRef.current.scale
+              );
+            }
+          } else if (reticleRef.current) {
+            setStatusMessage("Searching for surface");
+            reticleRef.current.visible = false;
           }
-        } else if (reticleRef.current) {
-          setStatusMessage("Searching for surface");
-          reticleRef.current.visible = false;
         }
-        renderer.render(sceneRef.current!, cameraRef.current!);
-      });
+        // Render with XR-aware camera
+        const xrCamera = renderer.xr.getCamera();
+        renderer.render(sceneRef.current!, xrCamera);
+        // Queue next frame
+        xrSession.requestAnimationFrame(onXRFrame);
+      };
+      // Start the XR loop
+      xrSession.requestAnimationFrame(onXRFrame);
 
       xrSession.addEventListener("end", () => {
         setSession(null);
