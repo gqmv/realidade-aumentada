@@ -175,6 +175,14 @@ export default function ARExperience() {
 
       // Set up XR frame loop using xrSession.requestAnimationFrame
       const onXRFrame = (time: number, frame: XRFrame) => {
+        // If sphere has been placed, skip status updates and continue rendering
+        if (spherePlacedRef.current) {
+          const xrCamera = renderer.xr.getCamera();
+          renderer.render(sceneRef.current!, xrCamera);
+          xrSession.requestAnimationFrame(onXRFrame);
+          return;
+        }
+        // Status updates for AR flow
         if (!frame) {
           setStatusMessage("No XRFrame in session callback");
         } else if (!hitTestSourceRef.current) {
@@ -204,13 +212,6 @@ export default function ARExperience() {
             setSurfaceStatus("Searching for surface");
             reticleRef.current.visible = false;
           }
-        }
-        // If sphere placed, stop updating statuses
-        if (spherePlacedRef.current) {
-          const xrCamera = renderer.xr.getCamera();
-          renderer.render(sceneRef.current!, xrCamera);
-          xrSession.requestAnimationFrame(onXRFrame);
-          return;
         }
         // Render with XR-aware camera
         const xrCamera = renderer.xr.getCamera();
