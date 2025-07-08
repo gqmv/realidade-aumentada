@@ -145,9 +145,19 @@ export default function ARExperience() {
       // Attach XR session to Three.js renderer so camera feed is displayed
       renderer.xr.setSession(xrSession);
 
-      // Set up reference space for placing objects
-      const localSpace = await xrSession.requestReferenceSpace("local-floor");
-      referenceSpaceRef.current = localSpace;
+      // Acquire reference space for placing objects, fallback to local if local-floor unsupported
+      let refSpace: XRReferenceSpace;
+      try {
+        setStatusMessage("Acquiring local-floor reference space");
+        refSpace = await xrSession.requestReferenceSpace("local-floor");
+      } catch (err) {
+        console.warn("local-floor not supported, falling back to local", err);
+        setStatusMessage(
+          "local-floor not supported, using local reference space"
+        );
+        refSpace = await xrSession.requestReferenceSpace("local");
+      }
+      referenceSpaceRef.current = refSpace;
       setStatusMessage("Reference space acquired");
 
       // Set up hit test source
