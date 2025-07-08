@@ -149,9 +149,10 @@ export default function ARExperience() {
         }
       })
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to start AR session:', error)
-      setError(`Failed to start AR: ${error.message || 'Unknown error'}`)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      setError(`Failed to start AR: ${errorMessage}`)
     }
   }
 
