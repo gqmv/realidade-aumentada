@@ -15,96 +15,64 @@ export default function ARExperience() {
   const sphereRef = useRef<THREE.Mesh | null>(null)
   const hitTestSourceRef = useRef<XRHitTestSource | null>(null)
   const [spherePlaced, setSpherePlaced] = useState(false)
-  const [error, setError] = useState<string>('')
-  const [debugInfo, setDebugInfo] = useState<string[]>([]);
-  const [isCheckingSupport, setIsCheckingSupport] = useState(true);
+  const [error, setError] = useState<string>("");
 
   useEffect(() => {
     // Check if WebXR is supported
-    const checkSupport = async () => {
-      const debug: string[] = [];
+    console.log("Checking WebXR support...");
+    console.log("navigator.xr available:", "xr" in navigator);
 
-      debug.push(`Checking WebXR support...`);
-      debug.push(`Browser: ${navigator.userAgent.substring(0, 50)}...`);
-      debug.push(`navigator.xr available: ${"xr" in navigator}`);
-
-      setDebugInfo([...debug]);
-
-      if ("xr" in navigator && navigator.xr) {
-        try {
-          const arSupported = await navigator.xr.isSessionSupported(
-            "immersive-ar"
-          );
-          debug.push(`immersive-ar supported: ${arSupported}`);
-          setDebugInfo([...debug]);
-          setIsSupported(arSupported);
-
-          if (!arSupported && navigator.xr) {
+    if ("xr" in navigator && navigator.xr) {
+      navigator.xr
+        .isSessionSupported("immersive-ar")
+        .then((supported: boolean) => {
+          console.log("immersive-ar supported:", supported);
+          setIsSupported(supported);
+          if (!supported && navigator.xr) {
             // Check if VR is supported as a fallback info
-            try {
-              const vrSupported = await navigator.xr.isSessionSupported(
-                "immersive-vr"
-              );
-              debug.push(`immersive-vr supported: ${vrSupported}`);
-              setDebugInfo([...debug]);
-
-              if (vrSupported) {
-                setSupportInfo(
-                  "Your browser supports WebXR VR but not AR. For AR, use Chrome on Android or Safari on iOS."
-                );
-              } else {
-                setSupportInfo(
-                  "Your browser supports WebXR but not AR mode. Try using Chrome on Android or Safari on iOS."
-                );
-              }
-            } catch (e) {
-              debug.push(`Error checking VR support: ${e}`);
-              setDebugInfo([...debug]);
-            }
+            navigator.xr
+              .isSessionSupported("immersive-vr")
+              .then((vrSupported: boolean) => {
+                if (vrSupported) {
+                  setSupportInfo(
+                    "Your browser supports WebXR VR but not AR. For AR, use Chrome on Android or Safari on iOS."
+                  );
+                } else {
+                  setSupportInfo(
+                    "Your browser supports WebXR but not AR mode. Try using Chrome on Android or Safari on iOS."
+                  );
+                }
+              });
           }
-        } catch (error: any) {
-          debug.push(`Error checking AR support: ${error.message}`);
-          setDebugInfo([...debug]);
+        })
+        .catch((error) => {
+          console.error("Error checking AR support:", error);
           setSupportInfo(`Error checking AR support: ${error.message}`);
-        }
-      } else {
-        debug.push("WebXR not available in navigator");
-        setDebugInfo([...debug]);
-        setSupportInfo(
-          "WebXR is not available in your browser. Please use a WebXR-compatible browser."
-        );
-      }
-
-      setIsCheckingSupport(false);
-    };
-
-    checkSupport();
+        });
+    } else {
+      console.log("WebXR not available in navigator");
+      setSupportInfo(
+        "WebXR is not available in your browser. Please use a WebXR-compatible browser."
+      );
+    }
   }, []);
 
   const initializeAR = async () => {
-    const debug = [...debugInfo];
-    debug.push("--- Button clicked ---");
-    debug.push(`Canvas ref exists: ${!!canvasRef.current}`);
-    debug.push(`AR supported: ${isSupported}`);
-    setDebugInfo(debug);
+    console.log("Canvas ref:", canvasRef.current);
+    console.log("Is supported:", isSupported);
 
     if (!canvasRef.current) {
       setError("Canvas not ready - please try again");
-      debug.push("ERROR: Canvas not ready");
-      setDebugInfo(debug);
       return;
     }
 
     if (!isSupported) {
       setError("AR is not supported on this device/browser");
-      debug.push("ERROR: AR not supported");
-      setDebugInfo(debug);
       return;
     }
 
     setError(""); // Clear any previous errors
-    debug.push("Starting AR initialization...");
-    setDebugInfo(debug);
+    console.log("Starting AR initialization...");
 
     // Initialize Three.js
     const scene = new THREE.Scene();
@@ -157,22 +125,16 @@ export default function ARExperience() {
 
     // Start AR session
     try {
-      debug.push("Checking WebXR availability...");
-      setDebugInfo([...debug]);
-
+      console.log("Checking WebXR availability...");
       if (!navigator.xr) {
         throw new Error("WebXR not available");
       }
 
-      debug.push("Requesting AR session...");
-      setDebugInfo([...debug]);
-
+      console.log("Requesting AR session...");
       const xrSession = await navigator.xr.requestSession("immersive-ar", {
         requiredFeatures: ["hit-test"],
       });
-
-      debug.push("AR session created successfully!");
-      setDebugInfo([...debug]);
+      console.log("AR session created successfully");
       setSession(xrSession);
 
       // Set up hit test source
@@ -223,10 +185,9 @@ export default function ARExperience() {
         }
       });
     } catch (error) {
+      console.error("Failed to start AR session:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      debug.push(`ERROR: Failed to start AR session - ${errorMessage}`);
-      setDebugInfo([...debug]);
       setError(`Failed to start AR: ${errorMessage}`);
     }
   };
@@ -238,13 +199,13 @@ export default function ARExperience() {
       sphereRef.current.visible = true;
       setSpherePlaced(true);
     }
-  };
+  }
 
   const endSession = () => {
     if (session) {
       session.end();
     }
-  };
+  }
 
   return (
     <div className="relative w-full h-screen">
@@ -254,15 +215,7 @@ export default function ARExperience() {
           <p className="text-gray-600 mb-6 text-center">
             Tap the button to start AR and place a sphere on a surface
           </p>
-
-          {isCheckingSupport ? (
-            <div className="text-center">
-              <p className="text-gray-500 mb-4">Checking WebXR support...</p>
-              <div className="animate-pulse">
-                <div className="h-12 bg-gray-200 rounded w-48 mx-auto"></div>
-              </div>
-            </div>
-          ) : isSupported ? (
+          {isSupported ? (
             <>
               <button
                 onClick={initializeAR}
@@ -274,36 +227,6 @@ export default function ARExperience() {
                 <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
                   <p className="text-sm">{error}</p>
                 </div>
-              )}
-
-              {/* Testing Instructions */}
-              <div className="mt-6 p-3 bg-blue-50 border border-blue-200 rounded-lg max-w-md">
-                <p className="text-sm text-blue-700">
-                  <span className="font-semibold">📱 Testing on Mobile?</span>
-                  <br />
-                  Access this page at:{" "}
-                  <code className="bg-blue-100 px-1 rounded">
-                    http://[YOUR-IP]:3001
-                  </code>
-                </p>
-              </div>
-
-              {/* Debug Information Panel */}
-              {debugInfo.length > 0 && (
-                <details className="mt-4 max-w-md">
-                  <summary className="cursor-pointer text-sm text-gray-600 hover:text-gray-800">
-                    Show Debug Info
-                  </summary>
-                  <div className="mt-2 p-3 bg-gray-800 text-white rounded-lg text-left">
-                    <div className="space-y-1 text-xs font-mono">
-                      {debugInfo.map((info, index) => (
-                        <div key={index} className="text-gray-300">
-                          {info}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </details>
               )}
             </>
           ) : (
@@ -331,20 +254,6 @@ export default function ARExperience() {
               >
                 Learn more about WebXR
               </button>
-
-              {/* Debug Information Panel */}
-              <div className="mt-6 p-4 bg-gray-800 text-white rounded-lg text-left max-w-md">
-                <h3 className="font-semibold mb-2 text-yellow-400">
-                  Debug Info:
-                </h3>
-                <div className="space-y-1 text-xs font-mono">
-                  {debugInfo.map((info, index) => (
-                    <div key={index} className="text-gray-300">
-                      {info}
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           )}
         </div>
