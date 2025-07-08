@@ -18,6 +18,7 @@ export default function ARExperience() {
   const referenceSpaceRef = useRef<XRReferenceSpace | null>(null);
   const [spherePlaced, setSpherePlaced] = useState(false)
   const [error, setError] = useState<string>("");
+  const [statusMessage, setStatusMessage] = useState<string>("Idle");
 
   useEffect(() => {
     // Check if WebXR is supported
@@ -60,6 +61,7 @@ export default function ARExperience() {
   }, []);
 
   const initializeAR = async () => {
+    setStatusMessage("Initializing AR...");
     console.log("Canvas ref:", canvasRef.current);
     console.log("Is supported:", isSupported);
 
@@ -138,7 +140,7 @@ export default function ARExperience() {
         optionalFeatures: ["dom-overlay"],
         domOverlay: { root: document.body },
       });
-      console.log("AR session created successfully");
+      setStatusMessage("AR session started");
       setSession(xrSession);
       // Attach XR session to Three.js renderer so camera feed is displayed
       renderer.xr.setSession(xrSession);
@@ -146,6 +148,7 @@ export default function ARExperience() {
       // Set up reference space for placing objects
       const localSpace = await xrSession.requestReferenceSpace("local-floor");
       referenceSpaceRef.current = localSpace;
+      setStatusMessage("Reference space acquired");
 
       // Set up hit test source
       const viewerSpace = await xrSession.requestReferenceSpace("viewer");
@@ -153,7 +156,10 @@ export default function ARExperience() {
         const hitTestSource = await xrSession.requestHitTestSource({
           space: viewerSpace,
         });
-        if (hitTestSource) hitTestSourceRef.current = hitTestSource;
+        if (hitTestSource) {
+          setStatusMessage("Hit test source ready");
+          hitTestSourceRef.current = hitTestSource;
+        }
       } else {
         throw new Error("Hit test not supported");
       }
@@ -166,6 +172,7 @@ export default function ARExperience() {
           );
 
           if (hitTestResults.length > 0 && reticleRef.current) {
+            setStatusMessage("Surface detected");
             const hit = hitTestResults[0];
             const pose = hit.getPose(referenceSpaceRef.current);
 
@@ -179,6 +186,7 @@ export default function ARExperience() {
               );
             }
           } else if (reticleRef.current) {
+            setStatusMessage("Searching for surface");
             reticleRef.current.visible = false;
           }
         }
@@ -188,6 +196,7 @@ export default function ARExperience() {
 
       xrSession.addEventListener("end", () => {
         setSession(null);
+        setStatusMessage("Session ended");
         if (rendererRef.current) {
           rendererRef.current.setAnimationLoop(null);
         }
@@ -206,12 +215,14 @@ export default function ARExperience() {
       sphereRef.current.quaternion.copy(reticleRef.current.quaternion);
       sphereRef.current.visible = true;
       setSpherePlaced(true);
+      setStatusMessage("Sphere placed");
     }
   }
 
   const endSession = () => {
     if (session) {
       session.end();
+      setStatusMessage("Session ended");
     }
   }
 
@@ -221,6 +232,9 @@ export default function ARExperience() {
         ref={canvasRef}
         className={`w-full h-full ${!session ? "hidden" : ""}`}
       />
+      <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-yellow-200 bg-opacity-75 p-2 rounded z-50 text-black">
+        {statusMessage}
+      </div>
       {!session ? (
         <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
           <h1 className="text-2xl font-bold mb-4">AR Sphere Demo</h1>
